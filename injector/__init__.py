@@ -62,8 +62,7 @@ V = TypeVar('V')
 
 
 def private(something: T) -> T:
-    something.__private__ = True  # type: ignore
-    return something
+    pass
 
 
 CallableT = TypeVar('CallableT', bound=Callable)
@@ -72,11 +71,7 @@ CallableT = TypeVar('CallableT', bound=Callable)
 def synchronized(lock: threading.RLock) -> Callable[[CallableT], CallableT]:
     def outside_wrapper(function: CallableT) -> CallableT:
         @functools.wraps(function)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            with lock:
-                return function(*args, **kwargs)
-
-        return cast(CallableT, wrapper)
+        pass
 
     return outside_wrapper
 
@@ -167,11 +162,7 @@ two issues:
 
 
 def reraise(original: Exception, exception: Exception, maximum_frames: int = 1) -> NoReturn:
-    prev_cls, prev, tb = sys.exc_info()
-    frames = inspect.getinnerframes(cast(types.TracebackType, tb))
-    if len(frames) > maximum_frames:
-        exception = original
-    raise exception.with_traceback(tb)
+    pass
 
 
 class Error(Exception):
@@ -249,7 +240,7 @@ class ClassProvider(Provider, Generic[T]):
         self._cls = cls
 
     def get(self, injector: 'Injector') -> T:
-        return injector.create_object(self._cls)
+        pass
 
 
 class CallableProvider(Provider, Generic[T]):
@@ -287,7 +278,7 @@ class CallableProvider(Provider, Generic[T]):
         self._callable = callable
 
     def get(self, injector: 'Injector') -> T:
-        return injector.call_with_injection(self._callable)
+        pass
 
     def __repr__(self) -> str:
         return '%s(%r)' % (type(self).__name__, self._callable)
@@ -316,7 +307,7 @@ class InstanceProvider(Provider, Generic[T]):
         self._instance = instance
 
     def get(self, injector: 'Injector') -> T:
-        return self._instance
+        pass
 
     def __repr__(self) -> str:
         return '%s(%r)' % (type(self).__name__, self._instance)
@@ -344,15 +335,10 @@ class MultiBinder(Provider, Generic[T]):
         # HACK: generate a pseudo-type for this element in the list.
         # This is needed for scopes to work properly. Some, like the Singleton scope,
         # key instances by type, so we need one that is unique to this binding.
-        pseudo_type = type(f"multibind-type-{id(provider)}", (provider.__class__,), {})
-        self._multi_bindings.append(Binding(pseudo_type, provider, scope))
+        pass
 
     def get_scoped_providers(self, injector: 'Injector') -> Generator[Provider[T], None, None]:
-        for binding in self._multi_bindings:
-            scope_binding, _ = self._binder.get_binding(binding.scope)
-            scope_instance: Scope = scope_binding.provider.get(injector)
-            provider_instance = scope_instance.get(binding.interface, binding.provider)
-            yield provider_instance
+        pass
 
     def __repr__(self) -> str:
         return '%s(%r)' % (type(self).__name__, self._multi_bindings)
@@ -365,24 +351,10 @@ class MultiBindProvider(MultiBinder[List[T]]):
     def multibind(
         self, interface: type, to: Any, scope: Union['ScopeDecorator', Type['Scope'], None]
     ) -> None:
-        try:
-            element_type = get_args(_punch_through_alias(interface))[0]
-        except IndexError:
-            raise InvalidInterface(f"Use typing.List[T] or list[T] to specify the element type of the list")
-        if isinstance(to, Collection):
-            for element in to:
-                element_binding = self._binder.create_binding(element_type, element, scope)
-                self.append(element_binding.provider, element_binding.scope)
-        else:
-            element_binding = self._binder.create_binding(interface, to, scope)
-            self.append(element_binding.provider, element_binding.scope)
+        pass
 
     def get(self, injector: 'Injector') -> List[T]:
-        result: List[T] = []
-        for provider in self.get_scoped_providers(injector):
-            instances: List[T] = _ensure_iterable(provider.get(injector))
-            result.extend(instances)
-        return result
+        pass
 
 
 class MapBindProvider(MultiBinder[Dict[str, T]]):
@@ -391,25 +363,10 @@ class MapBindProvider(MultiBinder[Dict[str, T]]):
     def multibind(
         self, interface: type, to: Any, scope: Union['ScopeDecorator', Type['Scope'], None]
     ) -> None:
-        try:
-            value_type = get_args(_punch_through_alias(interface))[1]
-        except IndexError:
-            raise InvalidInterface(
-                f"Use typing.Dict[K, V] or dict[K, V] to specify the value type of the dict"
-            )
-        if isinstance(to, Mapping):
-            for key, value in to.items():
-                element_binding = self._binder.create_binding(value_type, value, scope)
-                self.append(KeyValueProvider(key, element_binding.provider), element_binding.scope)
-        else:
-            element_binding = self._binder.create_binding(interface, to, scope)
-            self.append(element_binding.provider, element_binding.scope)
+        pass
 
     def get(self, injector: 'Injector') -> Dict[str, T]:
-        map: Dict[str, T] = {}
-        for provider in self.get_scoped_providers(injector):
-            map.update(provider.get(injector))
-        return map
+        pass
 
 
 @private
@@ -419,7 +376,7 @@ class KeyValueProvider(Provider[Dict[str, T]]):
         self._provider = inner_provider
 
     def get(self, injector: 'Injector') -> Dict[str, T]:
-        return {self._key: self._provider.get(injector)}
+        pass
 
 
 @dataclass
@@ -434,7 +391,7 @@ class Binding(_BindingBase):
     """A binding from an (interface,) to a provider in a scope."""
 
     def is_multibinding(self) -> bool:
-        return _get_origin(_punch_through_alias(self.interface)) in {dict, list}
+        pass
 
 
 @private
@@ -516,11 +473,7 @@ class Binder:
              :class:`Provider` subclass.
         :param scope: Optional :class:`Scope` in which to bind.
         """
-        if _get_origin(_punch_through_alias(interface)) in {dict, list}:
-            raise Error(
-                'Type %s is reserved for multibindings. Use multibind instead of bind.' % (interface,)
-            )
-        self._bindings[interface] = self.create_binding(interface, to, scope)
+        pass
 
     @overload
     def multibind(
@@ -570,29 +523,10 @@ class Binder:
 
         :param scope: Optional Scope in which to bind.
         """
-        multi_binder = self._get_multi_binder(interface)
-        multi_binder.multibind(interface, to, scope)
+        pass
 
     def _get_multi_binder(self, interface: type) -> MultiBinder:
-        multi_binder: MultiBinder
-        if interface not in self._bindings:
-            if (
-                isinstance(interface, dict)
-                or isinstance(interface, type)
-                and issubclass(interface, dict)
-                or _get_origin(_punch_through_alias(interface)) is dict
-            ):
-                multi_binder = MapBindProvider(self)
-            else:
-                multi_binder = MultiBindProvider(self)
-            binding = self.create_binding(interface, multi_binder)
-            self._bindings[interface] = binding
-        else:
-            binding = self._bindings[interface]
-            assert isinstance(binding.provider, MultiBinder)
-            multi_binder = binding.provider
-
-        return multi_binder
+        pass
 
     def install(self, module: _InstallableModuleType) -> None:
         """Install a module into this binder.
@@ -625,118 +559,33 @@ class Binder:
 
             binder.install(MyModule)
         """
-        if type(module) is type and issubclass(cast(type, module), Module):
-            instance = cast(type, module)()
-        else:
-            instance = module
-        instance(self)
+        pass
 
     def create_binding(
         self, interface: type, to: Any = None, scope: Union['ScopeDecorator', Type['Scope'], None] = None
     ) -> Binding:
-        provider = self.provider_for(interface, to)
-        scope = scope or getattr(to or interface, '__scope__', None)
-        if isinstance(scope, ScopeDecorator):
-            scope = scope.scope
-        return Binding(interface, provider, scope or NoScope)
+        pass
 
     def provider_for(self, interface: Any, to: Any = None) -> Provider:
-        base_type = _punch_through_alias(interface)
-        origin = _get_origin(base_type)
-
-        if interface is Any:
-            raise TypeError('Injecting Any is not supported')
-        elif _is_specialization(interface, ProviderOf):
-            (target,) = interface.__args__
-            if to is not None:
-                raise Exception('ProviderOf cannot be bound to anything')
-            return InstanceProvider(ProviderOf(self.injector, target))
-        elif isinstance(to, Provider):
-            return to
-        elif isinstance(
-            to,
-            (
-                types.FunctionType,
-                types.LambdaType,
-                types.MethodType,
-                types.BuiltinFunctionType,
-                types.BuiltinMethodType,
-            ),
-        ):
-            return CallableProvider(to)
-        elif issubclass(type(to), type):
-            return ClassProvider(cast(type, to))
-        elif isinstance(interface, BoundKey):
-
-            def proxy(injector: Injector) -> Any:
-                binder = injector.binder
-                kwarg_providers = {
-                    name: binder.provider_for(None, provider) for (name, provider) in interface.kwargs.items()
-                }
-                kwargs = {name: provider.get(injector) for (name, provider) in kwarg_providers.items()}
-                return interface.interface(**kwargs)
-
-            return CallableProvider(inject(proxy))
-        elif _is_specialization(interface, AssistedBuilder):
-            (target,) = interface.__args__
-            builder = interface(self.injector, target)
-            return InstanceProvider(builder)
-        elif (
-            origin is None
-            and isinstance(base_type, (tuple, type))
-            and interface is not Any
-            and isinstance(to, base_type)
-            or origin in {dict, list}
-            and isinstance(to, origin)
-        ):
-            return InstanceProvider(to)
-        elif issubclass(type(base_type), type) or isinstance(base_type, (tuple, list)):
-            if to is not None:
-                return InstanceProvider(to)
-            return ClassProvider(base_type)
-
-        else:
-            raise UnknownProvider('couldn\'t determine provider for %r to %r' % (interface, to))
+        pass
 
     def _get_binding(self, key: type, *, only_this_binder: bool = False) -> Tuple[Binding, 'Binder']:
-        binding = self._bindings.get(key)
-        if binding:
-            return binding, self
-        if self.parent and not only_this_binder:
-            return self.parent._get_binding(key)
-
-        raise KeyError
+        pass
 
     def get_binding(self, interface: type) -> Tuple[Binding, 'Binder']:
-        is_scope = isinstance(interface, type) and issubclass(interface, Scope)
-        is_assisted_builder = _is_specialization(interface, AssistedBuilder)
-        try:
-            return self._get_binding(interface, only_this_binder=is_scope or is_assisted_builder)
-        except (KeyError, UnsatisfiedRequirement):
-            if is_scope:
-                scope = interface
-                self.bind(scope, to=scope(self.injector))
-                return self._get_binding(interface)
-            # The special interface is added here so that requesting a special
-            # interface with auto_bind disabled works
-            if self._auto_bind or self._is_special_interface(interface):
-                binding = ImplicitBinding(**self.create_binding(interface).__dict__)
-                self._bindings[interface] = binding
-                return binding, self
-
-        raise UnsatisfiedRequirement(None, interface)
+        pass
 
     def has_binding_for(self, interface: type) -> bool:
-        return interface in self._bindings
+        pass
 
     def has_explicit_binding_for(self, interface: type) -> bool:
-        return self.has_binding_for(interface) and not isinstance(self._bindings[interface], ImplicitBinding)
+        pass
 
     def _is_special_interface(self, interface: type) -> bool:
         # "Special" interfaces are ones that you cannot bind yourself but
         # you can request them (for example you cannot bind ProviderOf(SomeClass)
         # to anything but you can inject ProviderOf(SomeClass) just fine
-        return any(_is_specialization(interface, cls) for cls in [AssistedBuilder, ProviderOf])
+        pass
 
 
 def _is_specialization(cls: type, generic_class: Any) -> bool:
@@ -748,45 +597,19 @@ def _is_specialization(cls: type, generic_class: Any) -> bool:
     # We need to special-case Annotated as its __origin__ behaves differently than
     # other typing generic classes. See https://github.com/python/typing/pull/635
     # for some details.
-    if generic_class is Annotated and isinstance(cls, _AnnotatedAlias):
-        return True
-
-    if not hasattr(cls, '__origin__'):
-        return False
-    origin = cast(Any, cls).__origin__
-    if not inspect.isclass(generic_class):
-        generic_class = type(generic_class)
-    if not inspect.isclass(origin):
-        origin = type(origin)
-    # __origin__ is generic_class is a special case to handle Union as
-    # Union cannot be used in issubclass() check (it raises an exception
-    # by design).
-    return origin is generic_class or issubclass(origin, generic_class)
+    pass
 
 
 def _ensure_iterable(item_or_list: Union[T, List[T]]) -> List[T]:
-    if isinstance(item_or_list, list):
-        return item_or_list
-    return [item_or_list]
+    pass
 
 
 def _punch_through_alias(type_: Any) -> type:
-    if type(type_).__module__ == 'typing' and type(type_).__name__ == 'NewType':
-        return type_.__supertype__
-    elif isinstance(type_, _AnnotatedAlias) and getattr(type_, '__metadata__', None) is not None:
-        return type_.__origin__
-    else:
-        return type_
+    pass
 
 
 def _get_origin(type_: type) -> Optional[type]:
-    origin = getattr(type_, '__origin__', None)
-    # Older typing behaves differently there and stores Dict and List as origin, we need to be flexible.
-    if origin is List:
-        return list
-    elif origin is Dict:
-        return dict
-    return origin
+    pass
 
 
 class Scope:
@@ -836,7 +659,7 @@ class NoScope(Scope):
     """An unscoped provider."""
 
     def get(self, key: Type[T], provider: Provider[T]) -> Provider[T]:
-        return provider
+        pass
 
 
 noscope = ScopeDecorator(NoScope)
@@ -860,31 +683,17 @@ class SingletonScope(Scope):
     _context: Dict[type, Provider]
 
     def configure(self) -> None:
-        self._context = {}
+        pass
 
     @synchronized(lock)
     def get(self, key: Type[T], provider: Provider[T]) -> Provider[T]:
-        try:
-            return self._context[key]
-        except KeyError:
-            instance = self._get_instance(key, provider, self.injector)
-            provider = InstanceProvider(instance)
-            self._context[key] = provider
-            return provider
+        pass
 
     def _get_instance(self, key: Type[T], provider: Provider[T], injector: 'Injector') -> T:
-        if injector.parent and not injector.binder.has_explicit_binding_for(key):
-            try:
-                return self._get_instance_from_parent(key, provider, injector.parent)
-            except (CallError, UnsatisfiedRequirement):
-                pass
-        return provider.get(injector)
+        pass
 
     def _get_instance_from_parent(self, key: Type[T], provider: Provider[T], parent: 'Injector') -> T:
-        singleton_scope_binding, _ = parent.binder.get_binding(type(self))
-        singleton_scope = singleton_scope_binding.provider.get(parent)
-        provider = singleton_scope.get(key, provider)
-        return provider.get(parent)
+        pass
 
 
 singleton = ScopeDecorator(SingletonScope)
@@ -894,15 +703,10 @@ class ThreadLocalScope(Scope):
     """A :class:`Scope` that returns a per-thread instance for a key."""
 
     def configure(self) -> None:
-        self._locals = threading.local()
+        pass
 
     def get(self, key: Type[T], provider: Provider[T]) -> Provider[T]:
-        try:
-            return getattr(self._locals, repr(key))
-        except AttributeError:
-            provider = InstanceProvider(provider.get(self.injector))
-            setattr(self._locals, repr(key), provider)
-            return provider
+        pass
 
 
 threadlocal = ScopeDecorator(ThreadLocalScope)
@@ -994,7 +798,7 @@ class Injector:
 
     @property
     def _log_prefix(self) -> str:
-        return '>' * (len(self._stack) + 1) + ' '
+        pass
 
     @synchronized(lock)
     def get(self, interface: Type[T], scope: Union[ScopeDecorator, Type[Scope], None] = None) -> T:
@@ -1030,47 +834,14 @@ class Injector:
         :param scope: Class of the Scope in which to resolve.
         :returns: An implementation of interface.
         """
-        binding, binder = self.binder.get_binding(interface)
-        scope = scope or binding.scope
-        if isinstance(scope, ScopeDecorator):
-            scope = scope.scope
-        # Fetch the corresponding Scope instance from the Binder.
-        scope_binding, _ = binder.get_binding(scope)
-        scope_instance = scope_binding.provider.get(self)
-
-        log.debug(
-            '%sInjector.get(%r, scope=%r) using %r', self._log_prefix, interface, scope, binding.provider
-        )
-        provider_instance = scope_instance.get(interface, binding.provider)
-        result = provider_instance.get(self)
-        log.debug('%s -> %r', self._log_prefix, result)
-        return result
+        pass
 
     def create_child_injector(self, *args: Any, **kwargs: Any) -> 'Injector':
-        kwargs['parent'] = self
-        return Injector(*args, **kwargs)
+        pass
 
     def create_object(self, cls: Type[T], additional_kwargs: Any = None) -> T:
         """Create a new instance, satisfying any dependencies on cls."""
-        additional_kwargs = additional_kwargs or {}
-        log.debug('%sCreating %r object with %r', self._log_prefix, cls, additional_kwargs)
-
-        try:
-            instance = cls.__new__(cls)
-        except TypeError as e:
-            reraise(
-                e,
-                CallError(cls, getattr(cls.__new__, '__func__', cls.__new__), (), {}, e, self._stack),
-                maximum_frames=2,
-            )
-        init = cls.__init__
-        try:
-            self.call_with_injection(init, self_=instance, kwargs=additional_kwargs)
-        except TypeError as e:
-            # Mypy says "Cannot access "__init__" directly"
-            init_function = instance.__init__.__func__  # type: ignore
-            reraise(e, CallError(instance, init_function, (), additional_kwargs, e, self._stack))
-        return instance
+        pass
 
     def call_with_injection(
         self, callable: Callable[..., T], self_: Any = None, args: Any = (), kwargs: Any = {}
@@ -1094,32 +865,7 @@ class Injector:
         :type kwargs: dict of string -> object
         :return: Value returned by callable.
         """
-
-        bindings = get_bindings(callable)
-        signature = inspect.signature(callable)
-        full_args = args
-        if self_ is not None:
-            full_args = (self_,) + full_args
-        bound_arguments = signature.bind_partial(*full_args)
-
-        needed = dict(
-            (k, v) for (k, v) in bindings.items() if k not in kwargs and k not in bound_arguments.arguments
-        )
-
-        dependencies = self.args_to_inject(
-            function=callable,
-            bindings=needed,
-            owner_key=self_.__class__ if self_ is not None else callable.__module__,
-        )
-
-        dependencies.update(kwargs)
-
-        try:
-            return callable(*full_args, **dependencies)
-        except TypeError as e:
-            reraise(e, CallError(self_, callable, args, dependencies, e, self._stack))
-            # Needed because of a mypy-related issue (https://github.com/python/mypy/issues/8129).
-            assert False, "unreachable"  # pragma: no cover
+        pass
 
     @private
     @synchronized(lock)
@@ -1134,36 +880,7 @@ class Injector:
             For a method this will be the owning class.
         :returns: Dictionary of resolved arguments.
         """
-        dependencies = {}
-
-        key = (owner_key, function, tuple(sorted(bindings.items())))
-
-        def repr_key(k: Tuple[object, Callable, Tuple[Tuple[str, type], ...]]) -> str:
-            owner_key, function, bindings = k
-            return '%s.%s(injecting %s)' % (tuple(map(_describe, k[:2])) + (dict(k[2]),))
-
-        log.debug('%sProviding %r for %r', self._log_prefix, bindings, function)
-
-        if key in self._stack:
-            raise CircularDependency(
-                'circular dependency detected: %s -> %s'
-                % (' -> '.join(map(repr_key, self._stack)), repr_key(key))
-            )
-
-        self._stack += (key,)
-        try:
-            for arg, interface in bindings.items():
-                try:
-                    instance: Any = self.get(interface)
-                except UnsatisfiedRequirement as e:
-                    if not e.owner:
-                        e = UnsatisfiedRequirement(owner_key, e.interface)
-                    raise e
-                dependencies[arg] = instance
-        finally:
-            self._stack = tuple(self._stack[:-1])
-
-        return dependencies
+        pass
 
 
 def get_bindings(callable: Callable) -> Dict[str, type]:
@@ -1230,25 +947,7 @@ def get_bindings(callable: Callable) -> Dict[str, type]:
     This function is used internally so by calling it you can learn what exactly
     Injector is going to try to provide to a callable.
     """
-    look_for_explicit_bindings = False
-    if not hasattr(callable, '__bindings__'):
-        type_hints = get_type_hints(callable, include_extras=True)
-        has_injectable_parameters = any(
-            _is_specialization(v, Annotated) and _inject_marker in getattr(v, "__metadata__", ())
-            for v in type_hints.values()
-        )
-
-        if not has_injectable_parameters:
-            return {}
-        else:
-            look_for_explicit_bindings = True
-
-    if look_for_explicit_bindings or cast(Any, callable).__bindings__ == 'deferred':
-        read_and_store_bindings(
-            callable, _infer_injected_bindings(callable, only_explicit_bindings=look_for_explicit_bindings)
-        )
-    noninjectables: Set[str] = getattr(callable, '__noninjectables__', set())
-    return {k: v for k, v in cast(Any, callable).__bindings__.items() if k not in noninjectables}
+    pass
 
 
 class _BindingNotYetAvailable(Exception):
@@ -1273,90 +972,7 @@ class _NoReturnAnnotationProxy:
 
 
 def _infer_injected_bindings(callable: Callable, only_explicit_bindings: bool) -> Dict[str, type]:
-    def _is_new_union_type(instance: Any) -> bool:
-        new_union_type = getattr(types, 'UnionType', None)
-        return new_union_type is not None and isinstance(instance, new_union_type)
-
-    def _is_injection_annotation(annotation: Any) -> bool:
-        return _is_specialization(annotation, Annotated) and (
-            _inject_marker in annotation.__metadata__ or _noinject_marker in annotation.__metadata__
-        )
-
-    def _recreate_annotated_origin(annotated_type: Any) -> Any:
-        # Creates `Annotated[type, annotation]` from `Inject[Annotated[type, annotation]]`,
-        # to support the injection of annotated types with the `Inject[]` annotation.
-        origin = annotated_type.__origin__
-        for metadata in annotated_type.__metadata__:  # pragma: no branch
-            if metadata in (_inject_marker, _noinject_marker):
-                break
-            origin = Annotated[origin, metadata]
-        return origin
-
-    spec = inspect.getfullargspec(callable)
-
-    try:
-        # Return types don't matter for the purpose of dependency injection so instead of
-        # obtaining type hints of the callable directly let's wrap it in _NoReturnAnnotationProxy.
-        # The proxy removes the return type annotation (if present) from the annotations so that
-        # get_type_hints() works even if the return type is a forward reference that can't be
-        # resolved.
-        bindings = get_type_hints(cast(Callable, _NoReturnAnnotationProxy(callable)), include_extras=True)
-    except NameError as e:
-        raise _BindingNotYetAvailable(e)
-
-    # We don't care about the return value annotation as it doesn't matter
-    # injection-wise.
-    bindings.pop('return', None)
-
-    # If we're dealing with a bound method get_type_hints will still return `self` annotation even though
-    # it's already provided and we're not really interested in its type. So – drop it.
-    if isinstance(callable, types.MethodType):
-        self_name = spec.args[0]
-        bindings.pop(self_name, None)
-
-    # variadic arguments aren't supported at the moment (this may change
-    # in the future if someone has a good idea how to utilize them)
-    if spec.varargs:
-        bindings.pop(spec.varargs, None)
-    if spec.varkw:
-        bindings.pop(spec.varkw, None)
-
-    for k, v in list(bindings.items()):
-        # extract metadata only from Inject and NonInject
-        if _is_injection_annotation(v):
-            v, metadata = _recreate_annotated_origin(v), v.__metadata__
-            bindings[k] = v
-        else:
-            metadata = tuple()
-
-        if only_explicit_bindings and _inject_marker not in metadata or _noinject_marker in metadata:
-            del bindings[k]
-        elif _is_specialization(v, Union) or _is_new_union_type(v):
-            # We don't treat Optional parameters in any special way at the moment.
-            union_members = v.__args__
-            new_members = tuple(set(union_members) - {type(None)})
-            # mypy stared complaining about this line for some reason:
-            #     error: Variable "new_members" is not valid as a type
-            new_union = Union[new_members]  # type: ignore
-            # mypy complains about this construct:
-            #     error: The type alias is invalid in runtime context
-            # See: https://github.com/python/mypy/issues/5354
-            union_metadata = {
-                metadata
-                for member in new_members
-                for metadata in getattr(member, '__metadata__', tuple())
-                if _is_specialization(member, Annotated)
-            }
-            if (
-                only_explicit_bindings
-                and _inject_marker not in union_metadata
-                or _noinject_marker in union_metadata
-            ):
-                del bindings[k]
-            else:
-                bindings[k] = new_union  # type: ignore
-
-    return bindings
+    pass
 
 
 def provider(function: CallableT) -> CallableT:
@@ -1382,8 +998,7 @@ def provider(function: CallableT) -> CallableT:
     >>> injector.get(str)
     '654'
     """
-    _mark_provider_function(function, allow_multi=False)
-    return function
+    pass
 
 
 def multiprovider(function: CallableT) -> CallableT:
@@ -1402,29 +1017,15 @@ def multiprovider(function: CallableT) -> CallableT:
         Injector([MyModule, OtherModule]).get(List[str])  # ['str1', 'str2']
 
     See also: :meth:`Binder.multibind`."""
-    _mark_provider_function(function, allow_multi=True)
-    return function
+    pass
 
 
 def _mark_provider_function(function: Callable, *, allow_multi: bool) -> None:
-    scope_ = getattr(function, '__scope__', None)
-    try:
-        annotations = get_type_hints(function, include_extras=True)
-    except NameError:
-        return_type = '__deferred__'
-    else:
-        return_type = annotations['return']
-        _validate_provider_return_type(function, cast(type, return_type), allow_multi)
-    function.__binding__ = Binding(return_type, inject(function), scope_)  # type: ignore
+    pass
 
 
 def _validate_provider_return_type(function: Callable, return_type: type, allow_multi: bool) -> None:
-    origin = _get_origin(_punch_through_alias(return_type))
-    if origin in {dict, list} and not allow_multi:
-        raise Error(
-            'Function %s needs to be decorated with multiprovider instead of provider if it is to '
-            'provide values to a multibinding of type %s' % (function.__name__, return_type)
-        )
+    pass
 
 
 ConstructorOrClassT = TypeVar('ConstructorOrClassT', bound=Union[Callable, Type])
@@ -1497,16 +1098,7 @@ def inject(constructor_or_class: ConstructorOrClassT) -> ConstructorOrClassT:
 
         (Re)added support for decorating classes with @inject.
     """
-    if isinstance(constructor_or_class, type) and hasattr(constructor_or_class, '__init__'):
-        inject(cast(Any, constructor_or_class).__init__)
-    else:
-        function = constructor_or_class
-        try:
-            bindings = _infer_injected_bindings(function, only_explicit_bindings=False)
-            read_and_store_bindings(function, bindings)
-        except _BindingNotYetAvailable:
-            cast(Any, function).__bindings__ = 'deferred'
-    return constructor_or_class
+    pass
 
 
 def noninjectable(*args: str) -> Callable[[CallableT], CallableT]:
@@ -1541,31 +1133,12 @@ def noninjectable(*args: str) -> Callable[[CallableT], CallableT]:
             A way to inspect how various injection declarations interact with each other.
 
     """
-
-    def decorator(function: CallableT) -> CallableT:
-        argspec = inspect.getfullargspec(inspect.unwrap(function))
-        for arg in args:
-            if arg not in argspec.args and arg not in argspec.kwonlyargs:
-                raise UnknownArgument('Unable to mark unknown argument %s ' 'as non-injectable.' % arg)
-
-        existing: Set[str] = getattr(function, '__noninjectables__', set())
-        merged = existing | set(args)
-        cast(Any, function).__noninjectables__ = merged
-        return function
-
-    return decorator
+    pass
 
 
 @private
 def read_and_store_bindings(f: Callable, bindings: Dict[str, type]) -> None:
-    function_bindings = getattr(f, '__bindings__', None) or {}
-    if function_bindings == 'deferred':
-        function_bindings = {}
-    merged_bindings = dict(function_bindings, **bindings)
-
-    if hasattr(f, '__func__'):
-        f = cast(Any, f).__func__
-    cast(Any, f).__bindings__ = merged_bindings
+    pass
 
 
 class BoundKey(tuple):
@@ -1588,11 +1161,11 @@ class BoundKey(tuple):
 
     @property
     def interface(self) -> Type[T]:
-        return self[0]
+        pass
 
     @property
     def kwargs(self) -> Dict[str, Any]:
-        return dict(self[1])
+        pass
 
 
 class AssistedBuilder(Generic[T]):
@@ -1601,32 +1174,19 @@ class AssistedBuilder(Generic[T]):
         self._target = target
 
     def build(self, **kwargs: Any) -> T:
-        binder = self._injector.binder
-        binding, _ = binder.get_binding(self._target)
-        provider = binding.provider
-        if not isinstance(provider, ClassProvider):
-            raise Error(
-                'Assisted interface building works only with ClassProviders, '
-                'got %r for %r' % (provider, binding.interface)
-            )
-
-        return self._build_class(cast(Type[T], provider._cls), **kwargs)
+        pass
 
     def _build_class(self, cls: Type[T], **kwargs: Any) -> T:
-        return self._injector.create_object(cls, additional_kwargs=kwargs)
+        pass
 
 
 class ClassAssistedBuilder(AssistedBuilder[T]):
     def build(self, **kwargs: Any) -> T:
-        return self._build_class(self._target, **kwargs)
+        pass
 
 
 def _describe(c: Any) -> str:
-    if hasattr(c, '__name__'):
-        return cast(str, c.__name__)
-    if type(c) in (tuple, list):
-        return '[%s]' % c[0].__name__
-    return str(c)
+    pass
 
 
 class ProviderOf(Generic[T]):
@@ -1656,7 +1216,7 @@ class ProviderOf(Generic[T]):
 
     def get(self) -> T:
         """Get an implementation for the specified interface."""
-        return self._injector.get(self._interface)
+        pass
 
 
 def is_decorated_with_inject(function: Callable[..., Any]) -> bool:
@@ -1677,4 +1237,4 @@ def is_decorated_with_inject(function: Callable[..., Any]) -> bool:
     >>> is_decorated_with_inject(fun2)
     True
     """
-    return hasattr(function, '__bindings__')
+    pass
