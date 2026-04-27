@@ -71,7 +71,10 @@ CallableT = TypeVar('CallableT', bound=Callable)
 def synchronized(lock: threading.RLock) -> Callable[[CallableT], CallableT]:
     def outside_wrapper(function: CallableT) -> CallableT:
         @functools.wraps(function)
-        pass
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            pass
+
+        return cast(CallableT, wrapper)
 
     return outside_wrapper
 
